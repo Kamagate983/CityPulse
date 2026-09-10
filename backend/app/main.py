@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.services.analytics import calculate_kpis, get_traffic_data
+
+
 app = FastAPI(
     title="CityPulse API",
     description="API d'analyse de mobilité urbaine",
-    version="0.1.0",
+    version="0.2.0",
 )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,9 +38,9 @@ def health_check():
 
 @app.get("/api/kpis")
 def get_kpis():
-    return {
-        "average_traffic": 1240,
-        "traffic_change": 12.4,
-        "anomalies_detected": 7,
-        "data_quality": 96.8,
-    }
+    return calculate_kpis()
+
+
+@app.get("/api/traffic")
+def get_traffic():
+    return get_traffic_data()
