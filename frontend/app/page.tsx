@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   CartesianGrid,
   Line,
@@ -37,8 +38,8 @@ export default function Home() {
     async function loadDashboard() {
       try {
         const [kpisResponse, trafficResponse] = await Promise.all([
-          fetch("http://localhost:8000/api/kpis"),
-          fetch("http://localhost:8000/api/traffic"),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kpis`),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/traffic`),
         ]);
 
         if (!kpisResponse.ok || !trafficResponse.ok) {
@@ -77,6 +78,29 @@ export default function Home() {
             d’anomalies.
           </p>
         </header>
+
+        <div className="mt-6 flex gap-4">
+          <Link
+            href="/"
+            className="rounded-lg bg-cyan-400 px-4 py-2 font-semibold text-slate-950"
+          >
+            Dashboard
+          </Link>
+
+          <Link
+            href="/anomalies"
+            className="rounded-lg border border-slate-700 px-4 py-2 text-slate-300"
+          >
+            Anomalies
+          </Link>
+
+          <Link
+            href="/quality"
+            className="rounded-lg border border-slate-700 px-4 py-2 text-slate-300"
+          >
+            Qualité des données
+          </Link>
+        </div>
 
         {error && (
           <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">

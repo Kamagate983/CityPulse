@@ -1,36 +1,188 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CityPulse
 
-## Getting Started
+CityPulse est une plateforme d'analyse de mobilité urbaine.
 
-First, run the development server:
+Elle permet de visualiser le trafic, de détecter les anomalies et de contrôler la qualité des données.
 
-```bash
+## Fonctionnalités
+
+- Dashboard analytique
+- KPI de mobilité
+- Graphique d'évolution du trafic
+- Détection statistique d'anomalies
+- Explication des anomalies
+- Contrôle de la qualité des données
+- API REST avec FastAPI
+- Interface responsive avec Next.js
+- Tests automatisés
+- Docker
+- GitHub Actions
+
+## Architecture
+
+```text
+CSV
+ |
+ v
+Pandas
+ |
+ v
+FastAPI
+ |
+ v
+Next.js
+ |
+ v
+Dashboard
+
+Stack technique
+Frontend
+
+    Next.js
+    React
+    TypeScript
+    Tailwind CSS
+    Recharts
+
+Backend
+
+    Python
+    FastAPI
+    Pandas
+    Pytest
+
+DevOps
+
+    Docker
+    Docker Compose
+    GitHub Actions
+
+Installation locale
+Backend
+bash
+Copy
+
+cd backend
+python -m venv venv
+
+Windows :
+bash
+Copy
+
+venv\Scripts\activate
+
+macOS/Linux :
+bash
+Copy
+
+source venv/bin/activate
+
+Installer les dépendances :
+bash
+Copy
+
+pip install -r requirements.txt
+
+Lancer l'API :
+bash
+Copy
+
+uvicorn app.main:app --reload
+
+API disponible sur :
+text
+Copy
+
+http://localhost:8000
+
+Documentation :
+text
+Copy
+
+http://localhost:8000/docs
+
+Frontend
+bash
+Copy
+
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Application disponible sur :
+text
+Copy
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Endpoints API
+Endpoint	Description
+/api/health	Vérification du service
+/api/kpis	KPI principaux
+/api/traffic	Données de trafic
+/api/anomalies	Anomalies détectées
+/api/data-quality	Qualité des données
+Méthode de détection
 
-## Learn More
+Les anomalies sont détectées avec un score Z.
+text
+Copy
 
-To learn more about Next.js, take a look at the following resources:
+z_score = (valeur - moyenne) / écart-type
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Une observation est considérée comme anormale lorsque la valeur absolue du score Z est supérieure ou égale à 1.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Cette méthode est adaptée à une démonstration, mais une version de production nécessiterait davantage de données historiques et une calibration métier.
+Limites
 
-## Deploy on Vercel
+    Les données actuelles sont synthétiques.
+    La corrélation météo-trafic ne prouve pas une causalité.
+    Le volume de données est faible.
+    Le système d'anomalie doit être recalibré avec des données réelles.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Roadmap
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    Ajouter Open-Meteo
+    Ajouter plusieurs villes
+    Ajouter une base PostgreSQL
+    Ajouter une carte interactive
+    Ajouter des alertes email
+    Ajouter des prévisions
+    Déployer l'application
+
+
+Projet Data Analyst / Full Stack Developer.
+
+---
+
+# `.gitignore`
+
+Crée ou complète `.gitignore` à la racine :
+
+```gitignore
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.env
+
+# Tests
+.pytest_cache/
+.coverage
+
+# Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
