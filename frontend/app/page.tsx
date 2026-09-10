@@ -23,6 +23,8 @@ type Kpis = {
 type TrafficData = {
   date: string;
   zone: string;
+  latitude: number;
+  longitude: number;
   traffic_count: number;
   weather: string;
   temperature: number;
@@ -70,7 +72,7 @@ export default function Home() {
           </p>
 
           <h1 className="text-4xl font-bold md:text-5xl">
-            Urban Mobility Intelligence
+            Analyse urbaine d’Abidjan
           </h1>
 
           <p className="mt-4 max-w-2xl text-slate-400">
@@ -99,6 +101,13 @@ export default function Home() {
             className="rounded-lg border border-slate-700 px-4 py-2 text-slate-300"
           >
             Qualité des données
+          </Link>
+
+          <Link
+            href="/live"
+            className="rounded-lg bg-emerald-400 px-4 py-2 font-semibold text-slate-950"
+          >
+            Live Abidjan
           </Link>
         </div>
 

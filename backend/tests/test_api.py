@@ -49,3 +49,16 @@ def test_quality_endpoint():
 
     assert "quality_score" in data
     assert "missing_values" in data
+
+
+def test_live_endpoint():
+    response = client.get("/api/live")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["city"] == "Abidjan"
+    assert "coordinates" in data
+    assert "data" in data
+    assert "sources" in data

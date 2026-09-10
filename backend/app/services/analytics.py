@@ -98,6 +98,15 @@ def calculate_data_quality() -> dict:
         ((df["temperature"] < -50) | (df["temperature"] > 60)).sum()
     )
 
+    invalid_coordinates = int(
+        (
+            (df["latitude"] < -90)
+            | (df["latitude"] > 90)
+            | (df["longitude"] < -180)
+            | (df["longitude"] > 180)
+        ).sum()
+    )
+
     total_cells = df.shape[0] * df.shape[1]
     valid_cells = total_cells - missing_values
 
@@ -111,4 +120,5 @@ def calculate_data_quality() -> dict:
         "duplicate_rows": duplicate_rows,
         "invalid_traffic_values": invalid_traffic,
         "invalid_temperature_values": invalid_temperature,
+        "invalid_coordinate_values": invalid_coordinates,
     }

@@ -11,6 +11,7 @@ type Quality = {
   duplicate_rows: number;
   invalid_traffic_values: number;
   invalid_temperature_values: number;
+  invalid_coordinate_values: number;
 };
 
 export default function QualityPage() {
@@ -92,6 +93,11 @@ export default function QualityPage() {
               <QualityCard
                 label="Température invalide"
                 value={quality.invalid_temperature_values}
+              />
+
+              <QualityCard
+                label="Coordonnées invalides"
+                value={quality.invalid_coordinate_values}
               />
             </section>
           </>
