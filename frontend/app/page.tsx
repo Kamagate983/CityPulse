@@ -2,66 +2,71 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
-type Kpis = {
-  average_traffic: number;
-  maximum_traffic: number;
-  minimum_traffic: number;
-  total_days: number;
-  data_quality: number;
+type Metric = {
+  value: number | null;
+  unit: string;
+  received_at: string;
 };
 
-type TrafficData = {
-  date: string;
-  zone: string;
-  latitude: number;
-  longitude: number;
-  traffic_count: number;
-  weather: string;
-  temperature: number;
-  air_quality: number;
+type LiveData = {
+  data: {
+    weather: Record<string, Metric>;
+    air_quality: Record<string, Metric>;
+  };
 };
 
 export default function Home() {
-  const [kpis, setKpis] = useState<Kpis | null>(null);
-  const [trafficData, setTrafficData] = useState<TrafficData[]>([]);
+  const [live, setLive] = useState<LiveData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function loadDashboard() {
+    async function loadLiveData() {
       try {
-        const [kpisResponse, trafficResponse] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/kpis`),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/traffic`),
-        ]);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/live`,
+          { cache: "no-store" },
+        );
 
-        if (!kpisResponse.ok || !trafficResponse.ok) {
+        if (!response.ok) {
           throw new Error("Erreur API");
         }
 
-        const kpisData = await kpisResponse.json();
-        const trafficResponseData = await trafficResponse.json();
-
-        setKpis(kpisData);
-        setTrafficData(trafficResponseData);
+        setLive(await response.json());
       } catch {
-        setError(
-          "Impossible de contacter le backend. Vérifie que FastAPI est lancé."
-        );
+        setError("Impossible de récupérer les données live d’Abidjan.");
+      } finally {
+        setLoading(false);
       }
     }
 
-    loadDashboard();
+    const initialLoad = window.setTimeout(() => {
+      void loadLiveData();
+    }, 0);
+
+    return () => clearTimeout(initialLoad);
   }, []);
+
+  const weather = live?.data.weather;
+  const airQuality = live?.data.air_quality;
+  const metrics = [
+    ["Température", weather?.temperature],
+    ["Humidité", weather?.humidity],
+    ["Précipitations", weather?.precipitation],
+    ["Vitesse du vent", weather?.wind_speed],
+    ["PM2.5", airQuality?.pm2_5],
+    ["PM10", airQuality?.pm10],
+    ["Ozone", airQuality?.ozone],
+  ] as const;
+
+  const latestReceivedAt = Object.values({
+    ...weather,
+    ...airQuality,
+  })
+    .map((metric) => metric.received_at)
+    .sort()
+    .at(-1);
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
@@ -76,8 +81,8 @@ export default function Home() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-slate-400">
-            Analyse du trafic urbain, suivi des indicateurs et détection
-            d’anomalies.
+            Observatoire intelligent d’Abidjan, basé sur les données météo et
+            de qualité de l’air disponibles en temps réel.
           </p>
         </header>
 
@@ -109,6 +114,20 @@ export default function Home() {
           >
             Live Abidjan
           </Link>
+
+          <Link
+            href="/history"
+            className="rounded-lg border border-slate-700 px-4 py-2 text-slate-300"
+          >
+            Historique
+          </Link>
+
+          <Link
+            href="/map"
+            className="rounded-lg border border-slate-700 px-4 py-2 text-slate-300"
+          >
+            Carte
+          </Link>
         </div>
 
         {error && (
@@ -117,139 +136,56 @@ export default function Home() {
           </div>
         )}
 
-        <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-          <KpiCard
-            title="Trafic moyen"
-            value={kpis ? `${kpis.average_traffic}` : "..."}
-            description="véhicules par jour"
+        <section className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {metrics.map(([label, metric]) => (
+            <MetricCard
+              key={label}
+              label={label}
+              value={loading ? "..." : formatMetric(metric)}
+            />
+          ))}
+
+          <MetricCard
+            label="Dernière synchronisation"
+            value={
+              loading
+                ? "..."
+                : latestReceivedAt
+                  ? formatDate(latestReceivedAt)
+                  : "Indisponible"
+            }
           />
-
-          <KpiCard
-            title="Pic de trafic"
-            value={kpis ? `${kpis.maximum_traffic}` : "..."}
-            description="maximum observé"
-          />
-
-          <KpiCard
-            title="Trafic minimum"
-            value={kpis ? `${kpis.minimum_traffic}` : "..."}
-            description="minimum observé"
-          />
-
-          <KpiCard
-            title="Jours analysés"
-            value={kpis ? `${kpis.total_days}` : "..."}
-            description="dans la période"
-          />
-
-          <KpiCard
-            title="Qualité"
-            value={kpis ? `${kpis.data_quality}%` : "..."}
-            description="complétude des données"
-          />
-        </section>
-
-        <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold">Évolution du trafic</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Nombre de véhicules observés par jour
-            </p>
-          </div>
-
-          <div className="h-[360px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trafficData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-
-                <XAxis
-                  dataKey="date"
-                  stroke="#94a3b8"
-                  tick={{ fontSize: 12 }}
-                />
-
-                <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} />
-
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0f172a",
-                    border: "1px solid #334155",
-                    borderRadius: "8px",
-                    color: "#fff",
-                  }}
-                />
-
-                <Line
-                  type="monotone"
-                  dataKey="traffic_count"
-                  name="Trafic"
-                  stroke="#22d3ee"
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: "#22d3ee" }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </section>
-
-        <section className="mt-8 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
-          <div className="border-b border-slate-800 p-6">
-            <h2 className="text-xl font-semibold">Dernières observations</h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-800/50 text-slate-400">
-                <tr>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Zone</th>
-                  <th className="px-6 py-4">Trafic</th>
-                  <th className="px-6 py-4">Météo</th>
-                  <th className="px-6 py-4">Température</th>
-                  <th className="px-6 py-4">Qualité air</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {trafficData.slice(-5).reverse().map((row) => (
-                  <tr
-                    key={row.date}
-                    className="border-t border-slate-800 text-slate-300"
-                  >
-                    <td className="px-6 py-4">{row.date}</td>
-                    <td className="px-6 py-4">{row.zone}</td>
-                    <td className="px-6 py-4 font-semibold text-cyan-400">
-                      {row.traffic_count}
-                    </td>
-                    <td className="px-6 py-4">{row.weather}</td>
-                    <td className="px-6 py-4">{row.temperature} °C</td>
-                    <td className="px-6 py-4">{row.air_quality}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </section>
       </div>
     </main>
   );
 }
 
-function KpiCard({
+function MetricCard({
   title,
+  label,
   value,
-  description,
 }: {
-  title: string;
+  title?: string;
+  label?: string;
   value: string;
-  description: string;
 }) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-      <p className="text-sm text-slate-400">{title}</p>
+      <p className="text-sm text-slate-400">{title ?? label}</p>
       <p className="mt-3 text-2xl font-bold text-cyan-400">{value}</p>
-      <p className="mt-2 text-xs text-slate-500">{description}</p>
     </div>
   );
+}
+
+function formatMetric(metric?: Metric) {
+  if (!metric || metric.value === null || metric.value === undefined) {
+    return "Indisponible";
+  }
+
+  return `${metric.value} ${metric.unit}`;
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString("fr-FR");
 }

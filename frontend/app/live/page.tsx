@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 type Metric = {
   value: number | null;
   unit: string;
@@ -26,6 +28,7 @@ export default function LivePage() {
   const [live, setLive] = useState<LiveData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState("");
+  const [syncing, setSyncing] = useState(false);
 
   async function loadLiveData() {
     try {
@@ -47,6 +50,25 @@ export default function LivePage() {
       setLoading(false);
     } catch {
       setLoading(false);
+    }
+  }
+
+  async function synchronizeLiveData() {
+    setSyncing(true);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/live/sync`,
+        { method: "POST" },
+      );
+
+      if (!response.ok) {
+        throw new Error("Erreur de synchronisation");
+      }
+
+      await loadLiveData();
+    } finally {
+      setSyncing(false);
     }
   }
 
@@ -89,12 +111,29 @@ export default function LivePage() {
             </p>
           </div>
 
-          <button
-            onClick={loadLiveData}
-            className="rounded-lg bg-cyan-400 px-4 py-2 font-semibold text-slate-950"
-          >
-            Actualiser
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={loadLiveData}
+              className="rounded-lg bg-cyan-400 px-4 py-2 font-semibold text-slate-950"
+            >
+              Actualiser
+            </button>
+
+            <button
+              onClick={synchronizeLiveData}
+              disabled={syncing}
+              className="rounded-lg bg-emerald-400 px-4 py-2 font-semibold text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {syncing ? "Synchronisation..." : "Synchroniser maintenant"}
+            </button>
+
+            <a
+              href={`${API_URL}/api/export/observations`}
+              className="rounded-lg border border-cyan-500 px-4 py-2 text-cyan-400"
+            >
+              Exporter CSV
+            </a>
+          </div>
         </div>
 
         <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300">

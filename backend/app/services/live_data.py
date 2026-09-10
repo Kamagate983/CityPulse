@@ -24,6 +24,10 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def is_valid_number(value: object) -> bool:
+    return value is not None and isinstance(value, (int, float))
+
+
 def save_observation(
     source: str,
     category: str,
@@ -32,6 +36,9 @@ def save_observation(
     unit: str,
     observed_at: str,
 ) -> None:
+    if not is_valid_number(value):
+        return
+
     connection = get_connection()
 
     connection.execute(
@@ -152,14 +159,15 @@ def fetch_weather() -> dict:
         ]
 
         for metric, value, unit in weather_metrics:
-            save_observation(
-                source="open-meteo",
-                category="weather",
-                metric=metric,
-                value=value,
-                unit=unit,
-                observed_at=observed_at,
-            )
+            if is_valid_number(value):
+                save_observation(
+                    source="open-meteo",
+                    category="weather",
+                    metric=metric,
+                    value=value,
+                    unit=unit,
+                    observed_at=observed_at,
+                )
 
         save_sync_log(
             source="open-meteo-weather",
@@ -222,14 +230,15 @@ def fetch_air_quality() -> dict:
         ]
 
         for metric, value, unit in air_metrics:
-            save_observation(
-                source="open-meteo-air-quality",
-                category="air_quality",
-                metric=metric,
-                value=value,
-                unit=unit,
-                observed_at=observed_at,
-            )
+            if is_valid_number(value):
+                save_observation(
+                    source="open-meteo-air-quality",
+                    category="air_quality",
+                    metric=metric,
+                    value=value,
+                    unit=unit,
+                    observed_at=observed_at,
+                )
 
         save_sync_log(
             source="open-meteo-air-quality",
@@ -259,10 +268,29 @@ def fetch_air_quality() -> dict:
 
 
 def synchronize_all() -> dict:
-    return {
+    result = {
         "weather": fetch_weather(),
         "air_quality": fetch_air_quality(),
     }
+
+    clean_old_observations(days=90)
+
+    return result
+
+
+def clean_old_observations(days: int = 90) -> None:
+    connection = get_connection()
+
+    connection.execute(
+        """
+        DELETE FROM observations
+        WHERE datetime(received_at) < datetime('now', ?)
+        """,
+        (f"-{days} days",),
+    )
+
+    connection.commit()
+    connection.close()
 
 
 def get_latest_observations() -> dict:
@@ -307,6 +335,52 @@ def get_latest_observations() -> dict:
 
     return result
 
+def detect_live_anomalies(
+    category: str,
+    metric: str,
+    limit: int = 100,
+) -> list[dict]:
+    history = get_history(category, metric, limit)
+
+    values = [
+        item["value"]
+        for item in history
+        if item["value"] is not None
+    ]
+
+    if len(values) < 5:
+        return []
+
+    mean = sum(values) / len(values)
+
+    variance = sum((value - mean) ** 2 for value in values) / len(values)
+    standard_deviation = variance**0.5
+
+    if standard_deviation == 0:
+        return []
+
+    anomalies = []
+
+    for item in history:
+        if item["value"] is None:
+            continue
+
+        z_score = (item["value"] - mean) / standard_deviation
+
+        if abs(z_score) >= 2:
+            anomalies.append(
+                {
+                    **item,
+                    "mean": round(mean, 2),
+                    "z_score": round(z_score, 2),
+                    "severity": (
+                        "high" if abs(z_score) >= 3 else "medium"
+                    ),
+                }
+            )
+
+    return anomalies
+
 
 def get_source_status() -> list[dict]:
     connection = get_connection()
@@ -348,10 +422,10 @@ def get_history(category: str, metric: str, limit: int = 100) -> list[dict]:
             received_at
         FROM observations
         WHERE category = ? AND metric = ?
-        ORDER BY observed_at DESC
+        ORDER BY observed_at ASC
         LIMIT ?
         """,
-        (category, metric, limit),
+        (category, metric, min(limit, 1000)),
     ).fetchall()
 
     connection.close()

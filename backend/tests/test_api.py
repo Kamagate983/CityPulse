@@ -62,3 +62,46 @@ def test_live_endpoint():
     assert "coordinates" in data
     assert "data" in data
     assert "sources" in data
+    
+def test_live_data_endpoint():
+    response = client.get("/api/live")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["city"] == "Abidjan"
+    assert data["coordinates"]["latitude"] == 5.3599517
+    assert data["coordinates"]["longitude"] == -4.0082563
+    assert "data" in data
+    assert "sources" in data
+
+
+def test_status_endpoint():
+    response = client.get("/api/status")
+
+    assert response.status_code == 200
+    assert response.json()["city"] == "Abidjan"
+
+
+def test_history_endpoint():
+    response = client.get(
+        "/api/live/history?category=weather&metric=temperature"
+    )
+
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+def test_export_endpoint():
+    response = client.get("/api/export/observations")
+
+    assert response.status_code == 200
+    assert "text/csv" in response.headers["content-type"]
+
+def test_export_endpoint():
+    response = client.get("/api/export/observations")
+
+    assert response.status_code == 200
+    assert "text/csv" in response.headers["content-type"]
+    assert "source,category,metric" in response.text

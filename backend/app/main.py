@@ -1,3 +1,5 @@
+import csv
+import io
 import os
 from contextlib import asynccontextmanager
 
@@ -5,8 +7,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
-from app.database import initialize_database
+from app.database import get_connection, initialize_database
 from app.services.analytics import (
     calculate_data_quality,
     calculate_kpis,
@@ -14,6 +17,7 @@ from app.services.analytics import (
     get_traffic_data,
 )
 from app.services.live_data import (
+    detect_live_anomalies,
     get_history,
     get_latest_observations,
     get_source_status,
@@ -91,6 +95,77 @@ def health_check():
     }
 
 
+@app.get("/api/status")
+def get_application_status():
+    sources = get_source_status()
+
+    return {
+        "application": "CityPulse",
+        "city": "Abidjan",
+        "status": "operational",
+        "coordinates": {
+            "latitude": 5.3599517,
+            "longitude": -4.0082563,
+        },
+        "sources": sources,
+    }
+
+
+@app.get("/api/export/observations")
+def export_observations():
+    connection = get_connection()
+
+    rows = connection.execute(
+        """
+        SELECT
+            source,
+            category,
+            metric,
+            value,
+            unit,
+            latitude,
+            longitude,
+            observed_at,
+            received_at
+        FROM observations
+        ORDER BY observed_at DESC
+        """
+    ).fetchall()
+
+    connection.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(
+        [
+            "source",
+            "category",
+            "metric",
+            "value",
+            "unit",
+            "latitude",
+            "longitude",
+            "observed_at",
+            "received_at",
+        ]
+    )
+
+    for row in rows:
+        writer.writerow(tuple(row))
+
+    output.seek(0)
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": (
+                "attachment; filename=citypulse_observations.csv"
+            )
+        },
+    )
+
+
 @app.get("/api/kpis")
 def get_kpis():
     return calculate_kpis()
@@ -141,3 +216,11 @@ def get_live_history(
     limit: int = 100,
 ):
     return get_history(category, metric, limit)
+
+
+@app.get("/api/live/anomalies")
+def get_live_anomalies(
+    category: str = "weather",
+    metric: str = "temperature",
+):
+    return detect_live_anomalies(category, metric)

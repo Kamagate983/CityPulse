@@ -4,6 +4,10 @@ CityPulse est une plateforme d'analyse de mobilité urbaine.
 
 Elle permet de visualiser le trafic, de détecter les anomalies et de contrôler la qualité des données.
 
+> Les données de trafic présentes dans `demo_traffic.csv` sont synthétiques.
+> Les données live actuellement disponibles concernent la météo et la qualité
+> de l'air à Abidjan.
+
 ## Fonctionnalités
 
 - Dashboard analytique
@@ -150,6 +154,40 @@ Roadmap
     Ajouter des prévisions
     Déployer l'application
 
+
+## Données live
+
+CityPulse collecte automatiquement des données réelles pour Abidjan :
+
+- température ;
+- humidité ;
+- précipitations ;
+- vitesse du vent ;
+- PM2.5 ;
+- PM10 ;
+- ozone ;
+- dioxyde d'azote ;
+- monoxyde de carbone.
+
+### Coordonnées
+
+- Ville : Abidjan
+- Latitude : 5.3599517
+- Longitude : -4.0082563
+- Fuseau horaire : Africa/Abidjan
+
+### Sources
+
+- Open-Meteo Weather API
+- Open-Meteo Air Quality API
+- OpenStreetMap pour la cartographie
+
+Les données sont synchronisées toutes les 15 minutes et conservées localement dans SQLite.
+
+## Limites actuelles
+
+Les données de trafic routier réel d'Abidjan ne sont pas encore intégrées.
+Le trafic synthétique est conservé uniquement dans un fichier séparé de démonstration et n'est pas présenté comme une donnée réelle.
 
 Projet Data Analyst / Full Stack Developer.
 
